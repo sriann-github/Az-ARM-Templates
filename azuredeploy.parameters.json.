@@ -31,5 +31,13 @@
                 "14.04.2-LTS",
                 "15.04"
             ]
+        },
+      "repositoryUrl": {
+            "value": "https://github.com/sriann-github/Az-ARM-Templates.git"
+         },
+       "branch": {
+             "value": "Main"
+        },
+      "repositoryToken": {
+              "value": "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"
         }
-    }
