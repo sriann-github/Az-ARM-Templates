@@ -1,44 +1,5 @@
-"$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
     "contentVersion": "1.0.0.0",
-    "parameters": {
-        "saapacheType": {
-            "type": "string",
-            "defaultValue": "Standard_LRS",
-            "allowedValues": [
-                "Standard_LRS",
-                "Standard_ZRS",
-                "Standard_GRS",
-                "Standard_RAGRS",
-                "Premium_LRS"
-            ]
-        },
-        "ubuntu-vmName": {
-            "type": "string",
-            "minLength": 1
-        },
-        "ubuntu-vmAdminUserName": {
-            "type": "string",
-            "minLength": 1
-        },
-        "ubuntu-vmAdminPassword": {
-            "type": "securestring"
-        },
-        "ubuntu-vmUbuntuOSVersion": {
-            "type": "string",
-            "defaultValue": "14.04.2-LTS",
-            "allowedValues": [
-                "12.04.5-LTS",
-                "14.04.2-LTS",
-                "15.04"
-            ]
-        },
-      "repositoryUrl": {
-            "value": "https://github.com/sriann-github/Az-ARM-Templates.git"
-         },
-       "branch": {
-             "value": "Main"
-        },
-      "repositoryToken": {
-              "value": "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"
-        }
+    "parameters": {}
 }
