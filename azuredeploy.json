@@ -1,0 +1,179 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "saapacheType": {
+            "type": "string",
+            "defaultValue": "Standard_LRS",
+            "allowedValues": [
+                "Standard_LRS",
+                "Standard_ZRS",
+                "Standard_GRS",
+                "Standard_RAGRS",
+                "Premium_LRS"
+            ]
+        },
+        "ubuntu-vmName": {
+            "type": "string",
+            "minLength": 1
+        },
+        "ubuntu-vmAdminUserName": {
+            "type": "string",
+            "minLength": 1
+        },
+        "ubuntu-vmAdminPassword": {
+            "type": "securestring"
+        },
+        "ubuntu-vmUbuntuOSVersion": {
+            "type": "string",
+            "defaultValue": "14.04.2-LTS",
+            "allowedValues": [
+                "12.04.5-LTS",
+                "14.04.2-LTS",
+                "15.04"
+            ]
+        }
+    },
+    "resources": [
+        {
+            "name": "[variables('saapacheName')]",
+            "type": "Microsoft.Storage/storageAccounts",
+            "location": "[resourceGroup().location]",
+            "apiVersion": "2015-06-15",
+            "dependsOn": [],
+            "tags": {
+                "displayName": "saapache"
+            },
+            "properties": {
+                "accountType": "[parameters('saapacheType')]"
+            }
+        },
+        {
+            "name": "ubuntu-vnet",
+            "type": "Microsoft.Network/virtualNetworks",
+            "location": "[resourceGroup().location]",
+            "apiVersion": "2015-06-15",
+            "dependsOn": [],
+            "tags": {
+                "displayName": "ubuntu-vnet"
+            },
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[variables('ubuntu-vnetPrefix')]"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "[variables('ubuntu-vnetSubnet1Name')]",
+                        "properties": {
+                            "addressPrefix": "[variables('ubuntu-vnetSubnet1Prefix')]"
+                        }
+                    },
+                    {
+                        "name": "[variables('ubuntu-vnetSubnet2Name')]",
+                        "properties": {
+                            "addressPrefix": "[variables('ubuntu-vnetSubnet2Prefix')]"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+		  "type": "Microsoft.Network/publicIpAddresses",
+		  "apiVersion": "2020-06-01",
+		  "name": "ubuntuvnet-Pip",
+		  "location": "[resourceGroup().location]"
+        },
+		{
+            "name": "[variables('ubuntu-vmNicName')]",
+            "type": "Microsoft.Network/networkInterfaces",
+            "location": "[resourceGroup().location]",
+            "apiVersion": "2015-06-15",
+            "dependsOn": [
+                "[concat('Microsoft.Network/virtualNetworks/', 'ubuntu-vnet')]"
+				"[resourceId('Microsoft.Network/publicIpAddresses/', 'ubuntuvnet-Pip')]"
+            ],
+            "tags": {
+                "displayName": "ubuntu-vmNic"
+            },
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "subnet": {
+                                "id": "[variables('ubuntu-vmSubnetRef')]"
+                            }
+							"publicIpAddress": {
+							"id": "[resourceId('Microsoft.Network/publicIPAddresses', 'ubuntuvnet-Pip')]"
+						  }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "name": "[parameters('ubuntu-vmName')]",
+            "type": "Microsoft.Compute/virtualMachines",
+            "location": "[resourceGroup().location]",
+            "apiVersion": "2024-03-01",
+            "dependsOn": [                
+                "[concat('Microsoft.Network/networkInterfaces/', variables('ubuntu-vmNicName'))]"
+            ],
+            "tags": {
+                "displayName": "ubuntu-vm"
+            },
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[variables('ubuntu-vmVmSize')]"
+                },
+                "osProfile": {
+                    "computerName": "[parameters('ubuntu-vmName')]",
+                    "adminUsername": "[parameters('ubuntu-vmAdminUsername')]",
+                    "adminPassword": "[parameters('ubuntu-vmAdminPassword')]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "[variables('ubuntu-vmImagePublisher')]",
+                        "offer": "[variables('ubuntu-vmImageOffer')]",
+                        "sku": "[parameters('ubuntu-vmUbuntuOSVersion')]",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "name": "ubuntu-vmOSDisk",
+                        "vhd": {
+                            "uri": "[concat('http://', variables('saapacheName'), '.blob.core.windows.net/', variables('ubuntu-vmStorageAccountContainerName'), '/', variables('ubuntu-vmOSDiskName'), '.vhd')]"
+                        },
+                        "caching": "ReadWrite",
+                        "createOption": "FromImage"
+                    }
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('ubuntu-vmNicName'))]"
+                        }
+                    ]
+                }
+            }
+        }
+    ],
+    "variables": {
+        "saapacheName": "[concat('saapache', uniqueString(resourceGroup().id))]",
+        "ubuntu-vnetPrefix": "10.0.0.0/16",
+        "ubuntu-vnetSubnet1Name": "Subnet-1",
+        "ubuntu-vnetSubnet1Prefix": "10.0.0.0/24",
+        "ubuntu-vnetSubnet2Name": "Subnet-2",
+        "ubuntu-vnetSubnet2Prefix": "10.0.1.0/24",
+        "ubuntu-vmImagePublisher": "Canonical",
+        "ubuntu-vmImageOffer": "UbuntuServer",
+        "ubuntu-vmOSDiskName": "ubuntu-vmOSDisk",
+        "ubuntu-vmVmSize": "Standard_D1",
+        "ubuntu-vmVnetID": "[resourceId('Microsoft.Network/virtualNetworks', 'ubuntu-vnet')]",
+        "ubuntu-vmSubnetRef": "[concat(variables('ubuntu-vmVnetID'), '/subnets/', variables('ubuntu-vnetSubnet1Name'))]",
+        "ubuntu-vmStorageAccountContainerName": "vhds",
+        "ubuntu-vmNicName": "[concat(parameters('ubuntu-vmName'), 'NetworkInterface')]"
+    }
+}
